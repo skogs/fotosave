@@ -32,6 +32,14 @@ def mkdir_p(path):
         else:
             raise
 
+
+def compute_digest(file):
+    hasher = hashlib.sha1()
+    with open(file, 'rb') as f:
+        hasher.update(f.read())
+    return hasher.hexdigest()
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-d')
@@ -50,26 +58,21 @@ if __name__ == '__main__':
             for file in files:
                 dt = get_date(os.path.join(dir,file))
                 if dt is not None:
-                    print(file + ": " + dt)
                     exif_date,exif_time  = dt.split(' ')
                     (year,month,d) = exif_date.split(':')
 
                     src_photo_file = os.path.join(dir, file)
-                    filename, file_extension = os.path.splitext(src_photo_file)
+                    _, file_extension = os.path.splitext(src_photo_file)
 
-                    hasher = hashlib.sha1()
-                    with open(src_photo_file, 'rb') as f:
-                        hasher.update(f.read())
-                    print(src_photo_file, hasher.hexdigest())
+                    digest = compute_digest(src_photo_file)
 
                     dest_photo_dir = os.path.join(dest_dir, year, month)
                     mkdir_p(dest_photo_dir)
-                    dest_photo_file = os.path.join(dest_photo_dir, hasher.hexdigest()) \
+                    dest_photo_file = os.path.join(dest_photo_dir, digest) \
                                        + file_extension
 
-                    print "Copying " + src_photo_file + " to: " + dest_photo_file
-                    shutil.copy(src_photo_file, dest_photo_file)
+                    if not os.path.exists(dest_photo_file):
+                        print("Copying " + src_photo_file + " to: " + dest_photo_file)
+                        shutil.copy2(src_photo_file, dest_photo_file)
                 else:
-                    print(file)
-    else:
-        print(src + ": " + get_date(src))
+                    print(file + ": No date and not copied")
